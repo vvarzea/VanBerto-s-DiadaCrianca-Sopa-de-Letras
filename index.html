@@ -11,46 +11,26 @@
 <style>
 /* ═══ RESET & BASE ═══ */
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{
-  width:100%;height:100%;
-  overflow:hidden;
-  background:#0a0414;
-}
+html{height:100%}
 body{
   font-family:'Nunito','Baloo 2',sans-serif;
+  background:#1a0a2e;
+  min-height:100%;
+  overflow-x:hidden;
   user-select:none;
   -webkit-user-select:none;
 }
 
-/* ═══ SCALE ROOT ═══ */
-#scale-root{
-  position:absolute;
-  top:0;left:0;
-  width:1920px;
-  height:1080px;
-  transform-origin:top left;
-  background:#1a0a2e;
-  overflow:hidden;
-}
-/* Inner scroll container for the screens */
-#scale-inner{
-  width:100%;
-  height:1080px;
-  overflow-y:auto;
-  overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
-  position:relative;
-}
-
 @keyframes vbFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-#prof-tag{position:absolute;bottom:.6rem;left:50%;transform:translateX(-50%);z-index:600;font-family:'Nunito',sans-serif;font-size:clamp(.65rem,1.8vw,.78rem);color:#ffb890;font-weight:800;white-space:nowrap;text-shadow:0 1px 6px rgba(0,0,0,.8);pointer-events:none;}
+#prof-tag{position:fixed;bottom:.6rem;left:50%;transform:translateX(-50%);z-index:600;font-family:'Nunito',sans-serif;font-size:clamp(.65rem,1.8vw,.78rem);color:#ffb890;font-weight:800;white-space:nowrap;text-shadow:0 1px 6px rgba(0,0,0,.8);pointer-events:none;}
 
 /* ═══ SCREENS ═══ */
 .screen{
   display:none;
-  min-height:1080px;
+  min-height:100vh;
+  min-height:100dvh;
   padding:1.5rem 1rem 4rem;
-  padding-bottom:4rem;
+  padding-bottom:max(4rem, calc(4rem + env(safe-area-inset-bottom)));
   align-items:center;justify-content:center;flex-direction:column;
 }
 .screen.active{display:flex;}
@@ -198,7 +178,7 @@ body{
 /* ═══ GAME SCREEN ═══ */
 #gameScreen{
   padding-top:.4rem;
-  padding-bottom:3rem;
+  padding-bottom:max(3rem, calc(3rem + env(safe-area-inset-bottom)));
   padding-left:.5rem;
   padding-right:.5rem;
   background:#1a0a2e;
@@ -206,7 +186,6 @@ body{
   align-items:stretch;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
-  min-height:1080px;
 }
 .game-header{
   width:100%;max-width:1100px;
@@ -424,7 +403,7 @@ body{
 
 /* ═══ ROBOT FLUTUANTE FIXO ═══ */
 #fixed-robot-wrap{
-  position:absolute;
+  position:fixed;
   bottom:clamp(.6rem,2vh,1.2rem);
   right:clamp(.6rem,2vw,1.2rem);
   z-index:650;
@@ -478,7 +457,7 @@ body{
 
 /* ═══ WIN OVERLAY ═══ */
 #winOverlay{
-  position:absolute;inset:0;z-index:700;
+  position:fixed;inset:0;z-index:700;
   display:none;
   align-items:center;justify-content:center;
   background:rgba(8,3,20,.88);
@@ -519,7 +498,7 @@ body{
 }
 
 /* ═══ CONFETTI ═══ */
-#confetti{position:absolute;inset:0;pointer-events:none;z-index:5000;overflow:hidden}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:5000;overflow:hidden}
 #confetti.hidden{display:none!important}
 #confetti span{position:absolute;top:-10vh;animation:confettiFall linear forwards;will-change:transform}
 @keyframes confettiFall{0%{transform:translateY(-10vh) rotate(0);opacity:1}100%{transform:translateY(120vh) rotate(540deg);opacity:.9}}
@@ -534,7 +513,7 @@ body{
   .game-header{gap:.2rem;}
   .level-bar-game .lvl-btn{padding:.25rem .5rem;font-size:.7rem;}
   .btn{padding:5px 9px;font-size:.74rem;}
-  #gameScreen{padding-bottom:3.5rem;}
+  #gameScreen{padding-bottom:max(3.5rem, calc(3.5rem + env(safe-area-inset-bottom)));}
 }
 @media(max-width:320px){
   .bubble{display:none;}
@@ -601,8 +580,8 @@ body{
 </style>
 </head>
 <body lang="pt-PT">
-<div id="scale-root">
-<div id="scale-inner">
+
+<!-- ═══ HEADER ═══ -->
 
 
 
@@ -675,9 +654,6 @@ body{
     </div>
   </div>
 </div>
-
-<!-- ═══ ROBOT FLUTUANTE FIXO ═══ -->
-</div><!-- /scale-inner -->
 
 <!-- ═══ ROBOT FLUTUANTE FIXO ═══ -->
 <div id="fixed-robot-wrap">
@@ -802,18 +778,22 @@ function fillR(g,s){const L='ABCDEFGHIJKLMNOPQRSTUVWXYZ';for(let r=0;r<s;r++)for
 function calcCellSize(s){
   const gw=document.getElementById('grid-wrap');
   let avail=gw.getBoundingClientRect().width||gw.offsetWidth;
-  // In scale system: compare against logical 1920px width, not window.innerWidth
-  const logicalW=1920;
-  const isMobile=logicalW<=700; // always false — we're in 1920-wide canvas
+  const isMobile=window.innerWidth<=700;
   // Cap grid at 760px so it doesn't get huge on very wide screens
-  avail=Math.min(avail,760);
+  avail=Math.min(avail, isMobile ? 9999 : 760);
   if(avail<40){
-    const sidebarW=270;
-    avail=Math.min(logicalW - sidebarW - 40, 760);
+    const sw=window.innerWidth;
+    if(isMobile){
+      avail=sw-20;
+    } else {
+      // Desktop: subtract sidebar + gap + padding, cap at 760
+      const sidebarW = sw <= 900 ? 190 : sw <= 1200 ? 220 : 270;
+      avail=Math.min(sw - sidebarW - 40, 760);
+    }
   }
-  const gap=Math.max(1, Math.floor((s-1)*3));
+  const gap=Math.max(1, Math.floor((s-1)*(isMobile?1.5:3)));
   const cs=Math.floor((avail-gap)/s);
-  return Math.max(cs, 14);
+  return Math.max(cs, 14); // never smaller than 14px
 }
 
 function buildGame(){
@@ -835,9 +815,11 @@ function buildGame(){
 function renderGrid(s){
   const el=document.getElementById('grid');
   const gw=document.getElementById('grid-wrap');
-  const gap=3; // always desktop gap in 1920-wide canvas
-  let avail=gw.getBoundingClientRect().width||gw.offsetWidth||Math.min(1920*.95,860);
-  avail=Math.min(avail,760);
+  const isMobile=window.innerWidth<=700;
+  const gap=isMobile ? 2 : 3;
+  // Measure after layout settle
+  let avail=gw.getBoundingClientRect().width||gw.offsetWidth||Math.min(window.innerWidth*.95,860);
+  avail=Math.min(avail, isMobile ? 9999 : 760);
   const totalGap=gap*(s-1);
   const cs=Math.max(14, Math.floor((avail-totalGap)/s));
   el.style.gridTemplateColumns=`repeat(${s},${cs}px)`;
@@ -916,20 +898,7 @@ function addEv(){
   const fresh=gel.cloneNode(false);while(gel.firstChild)fresh.appendChild(gel.firstChild);gel.parentNode.replaceChild(fresh,gel);
   const g2=document.getElementById('grid');
   function getC(t){const c=t&&t.closest&&t.closest('.cell');return c?{r:+c.dataset.r,c:+c.dataset.c}:null;}
-  function getTC(e){
-    const t=e.changedTouches[0];
-    // Adjust for scale transform: convert screen coords to scale-root logical coords
-    const root=document.getElementById('scale-root');
-    const rect=root.getBoundingClientRect();
-    const scaleX=(root.offsetWidth||1920)/rect.width;
-    const scaleY=(root.offsetHeight||1080)/rect.height;
-    const lx=(t.clientX-rect.left)*scaleX;
-    const ly=(t.clientY-rect.top)*scaleY;
-    // Use document.elementFromPoint on the logical point
-    // We need to temporarily reverse: use the actual clientX/Y
-    const el=document.elementFromPoint(t.clientX,t.clientY);
-    return el?getC(el):null;
-  }
+  function getTC(e){const t=e.changedTouches[0];const el=document.elementFromPoint(t.clientX,t.clientY);return el?getC(el):null;}
   function stS(p){selecting=true;startCell=p;selLine=[[p.r,p.c]];clrSel();getCell(p.r,p.c).classList.add('selecting');}
   function mvS(p){if(!selecting)return;clrSel();selLine=getLine(startCell.r,startCell.c,p.r,p.c);selLine.forEach(([r,c])=>getCell(r,c).classList.add('selecting'));}
   function enS(){if(!selecting)return;selecting=false;if(selLine.length){const w=checkW(selLine);if(w)onFound(w);}clrSel();selLine=[];}
@@ -952,14 +921,14 @@ function reapplyFound(){
   });
 }
 
-/* redraw on resize — scale system triggers this via renderGrid directly */
+/* redraw on resize */
 let resizeT=null;
 window.addEventListener('resize',()=>{clearTimeout(resizeT);resizeT=setTimeout(()=>{
   if(grid.length&&document.getElementById('gameScreen').classList.contains('active')){
     renderGrid(LEVELS[lvl].size);
     reapplyFound();
   }
-},250);});
+},200);});
 
 /* ── LEVEL BUTTONS ── */
 document.querySelectorAll('#startScreen .lvl-btn').forEach(b=>b.addEventListener('click',()=>{
@@ -1107,38 +1076,6 @@ btnFS.addEventListener('click',()=>{
 document.addEventListener('fullscreenchange',()=>{updateFSIcon();setTimeout(()=>{if(grid.length&&document.getElementById('gameScreen').classList.contains('active')){renderGrid(LEVELS[lvl].size);reapplyFound();}},150);});
 document.addEventListener('webkitfullscreenchange',()=>{updateFSIcon();setTimeout(()=>{if(grid.length&&document.getElementById('gameScreen').classList.contains('active')){renderGrid(LEVELS[lvl].size);reapplyFound();}},150);});
 document.addEventListener('mozfullscreenchange',()=>{updateFSIcon();setTimeout(()=>{if(grid.length&&document.getElementById('gameScreen').classList.contains('active')){renderGrid(LEVELS[lvl].size);reapplyFound();}},150);});
-
-/* ══════════════════════════════════════════
-   SISTEMA DE ESCALA RESPONSIVO 1920×1080
-   ══════════════════════════════════════════ */
-(function(){
-  const BASE_W=1920,BASE_H=1080;
-  const root=document.getElementById('scale-root');
-  const inner=document.getElementById('scale-inner');
-
-  function applyScale(){
-    const w=window.innerWidth,h=window.innerHeight;
-    const scale=Math.min(w/BASE_W,h/BASE_H);
-    const scaledW=BASE_W*scale;
-    const scaledH=BASE_H*scale;
-    const offX=(w-scaledW)/2;
-    const offY=(h-scaledH)/2;
-    root.style.transform='translate('+offX+'px,'+offY+'px) scale('+scale+')';
-    // Also re-render grid if active
-    if(typeof grid!=='undefined'&&grid.length&&
-       document.getElementById('gameScreen').classList.contains('active')){
-      clearTimeout(window._scaleResizeT);
-      window._scaleResizeT=setTimeout(()=>{
-        renderGrid(LEVELS[lvl].size);
-        reapplyFound();
-      },80);
-    }
-  }
-
-  applyScale();
-  window.addEventListener('resize',applyScale);
-})();
 </script>
-</div><!-- /scale-root -->
 </body>
 </html>
