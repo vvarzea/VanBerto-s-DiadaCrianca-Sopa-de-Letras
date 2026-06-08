@@ -716,6 +716,42 @@ const LEVELS={
 };
 const CHX=['#ff6b9d','#36b5f5','#4ecb71','#ff9f43','#a29bfe','#fd79a8','#00cec9','#ffd700','#ff6b35','#6c5ce7','#00b894','#e17055','#b8860b'];
 
+/* ── SONS ── */
+let audioCtx=null;
+function getAC(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function playWordFound(){
+  try{
+    const ac=getAC();
+    // Acorde alegre: três notas em sequência rápida
+    [[523.25,0],[659.25,.08],[783.99,.16]].forEach(([freq,delay])=>{
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.connect(g);g.connect(ac.destination);
+      o.type='sine';o.frequency.value=freq;
+      const t=ac.currentTime+delay;
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(.28,t+.02);
+      g.gain.exponentialRampToValueAtTime(.001,t+.32);
+      o.start(t);o.stop(t+.35);
+    });
+  }catch(e){}
+}
+function playWin(){
+  try{
+    const ac=getAC();
+    // Fanfarra vitória
+    [[523.25,0,.18],[659.25,.18,.18],[783.99,.36,.18],[1046.5,.54,.35]].forEach(([freq,delay,dur])=>{
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.connect(g);g.connect(ac.destination);
+      o.type='triangle';o.frequency.value=freq;
+      const t=ac.currentTime+delay;
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(.32,t+.03);
+      g.gain.exponentialRampToValueAtTime(.001,t+dur);
+      o.start(t);o.stop(t+dur+.05);
+    });
+  }catch(e){}
+}
+
 let lvl='easy',grid=[],placed=[],found=[],cells=[],
     selecting=false,startCell=null,selLine=[],
     hintsLeft=3,playerName='Herói das Crianças',startSel='easy';
@@ -827,6 +863,7 @@ function getCell(r,c){return cells[r*LEVELS[lvl].size+c];}
 function clrSel(){cells.forEach(d=>{if(d.classList.contains('selecting'))d.classList.remove('selecting');});}
 
 function onFound(p){
+  playWordFound();
   const i=placed.indexOf(p);found.push(p.word);hl(p.coords,'found-'+i);
   document.getElementById('wi-'+i).classList.add('done');
   const pct=Math.round(found.length/placed.length*100);
@@ -840,6 +877,7 @@ function onFound(p){
 }
 
 function showWin(){
+  playWin();
   const L=LEVELS[lvl],pct=found.length/placed.length,
     m=pct===1?L.medals[0]:pct>=.7?L.medals[1]:L.medals[2];
   const names={easy:'Fácil',medium:'Médio',hard:'Difícil'};
